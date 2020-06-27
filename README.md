@@ -74,9 +74,11 @@ NODE_API_MODULE(addon, Init)
 <br>
 
 6. Create a file called 'test.js' to call your functions in it, for example:
-
+```js
 const democpp = require("./build/Release/democpp.node");
 console.log(democpp.hello());
+```
+
 
 <br><br><br>
 
