@@ -1,0 +1,16 @@
+{
+    "name": "cpp-in-node",
+    "version": "1.0.0",
+    "description": "This is a project that shows the CPP utilization in Nodejs.",
+    "main": "index.js",
+    "private": true,
+    "gypfile": true,
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Alexander Ezharjan",
+    "license": "ISC",
+    "dependencies": {
+        "node-addon-api": "^3.0.0"
+    }
+}

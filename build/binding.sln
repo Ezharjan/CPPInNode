@@ -1,0 +1,42 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2015
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "(4-th_Grade)", "..\4-th_Grade", "{82D25C79-7687-9FE6-F4C5-DC85E61BF5B6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "(CPPInNode)", "..\4-th_Grade\CPPInNode", "{D27A207E-E9FD-2B20-1E3F-9F3EE8A23BFA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "(node-addon-api)", "..\4-th_Grade\CPPInNode\node_modules\node-addon-api", "{619CE69B-DC84-4892-01C9-3DED9634B3F6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "(node_modules)", "..\4-th_Grade\CPPInNode\node_modules", "{53D21A73-3F43-15D1-5893-2C07B3293054}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "democpp", "democpp.vcxproj", "{A3125C66-2FB1-78FF-376F-6954C8D24009}"
+	ProjectSection(ProjectDependencies) = postProject
+		{48D14443-B2E2-A5AA-A428-18C8D04E8010} = {48D14443-B2E2-A5AA-A428-18C8D04E8010}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nothing", "..\node_modules\node-addon-api\nothing.vcxproj", "{48D14443-B2E2-A5AA-A428-18C8D04E8010}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{48D14443-B2E2-A5AA-A428-18C8D04E8010}.Debug|x64.ActiveCfg = Debug|x64
+		{48D14443-B2E2-A5AA-A428-18C8D04E8010}.Debug|x64.Build.0 = Debug|x64
+		{48D14443-B2E2-A5AA-A428-18C8D04E8010}.Release|x64.ActiveCfg = Release|x64
+		{48D14443-B2E2-A5AA-A428-18C8D04E8010}.Release|x64.Build.0 = Release|x64
+		{A3125C66-2FB1-78FF-376F-6954C8D24009}.Debug|x64.ActiveCfg = Debug|x64
+		{A3125C66-2FB1-78FF-376F-6954C8D24009}.Debug|x64.Build.0 = Debug|x64
+		{A3125C66-2FB1-78FF-376F-6954C8D24009}.Release|x64.ActiveCfg = Release|x64
+		{A3125C66-2FB1-78FF-376F-6954C8D24009}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D27A207E-E9FD-2B20-1E3F-9F3EE8A23BFA} = {82D25C79-7687-9FE6-F4C5-DC85E61BF5B6}
+		{53D21A73-3F43-15D1-5893-2C07B3293054} = {D27A207E-E9FD-2B20-1E3F-9F3EE8A23BFA}
+		{48D14443-B2E2-A5AA-A428-18C8D04E8010} = {619CE69B-DC84-4892-01C9-3DED9634B3F6}
+		{619CE69B-DC84-4892-01C9-3DED9634B3F6} = {53D21A73-3F43-15D1-5893-2C07B3293054}
+	EndGlobalSection
+EndGlobal
