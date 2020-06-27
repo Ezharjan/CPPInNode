@@ -7,18 +7,20 @@
 <br>
 
 2. add the code below into the packake.json file:
+```json
 {
   "name": "test-cpp-module",
   "version": "0.1.0",
   "private": true,
   "gypfile": true
 }
-
+```
 
 <br>
 
 
 3. Create 'binding.gyp' file in the project folder and add the contents below:
+```gyp
 {
      "targets": [
     {
@@ -41,6 +43,7 @@
     }
   ]
 }
+```
 
 
 <br>
