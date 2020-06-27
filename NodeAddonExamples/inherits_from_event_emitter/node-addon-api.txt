@@ -1,0 +1,1 @@
+header-only C++ wrapper classes which simplify the use of the C-based N-API.

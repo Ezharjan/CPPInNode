@@ -1,0 +1,1 @@
+C-based API guaranteeing ABI stability across different node versions as well as JavaScript engines.
