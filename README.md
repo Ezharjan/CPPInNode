@@ -82,7 +82,11 @@ console.log(democpp.hello());
 
 <br><br><br>
 
-[Reference](https://www.cnblogs.com/andrewwang/p/9409876.html)
+**Reference**
+1. [Initial 'HelloWorld' Demo](https://www.cnblogs.com/andrewwang/p/9409876.html)
+2. [Node-Addon-Examples](https://github.com/nodejs/node-addon-examples.git)
+3. [Further Reference](https://nodejs.org/dist/latest-v12.x/docs/api/n-api.html)
+3. [Related Documentation](https://nodejs.org/api/addons.html#addons_c_addons)
 
 ------
 
