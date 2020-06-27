@@ -1,0 +1,235 @@
+#include <assert.h>
+#include <stdlib.h>
+#define NAPI_EXPERIMENTAL
+#include <node_api.h>
+
+// Limit ourselves to this many primes, starting at 2
+#define PRIME_COUNT 100000
+#define REPORT_EVERY 1000
+
+typedef struct {
+  napi_async_work work;
+  napi_threadsafe_function tsfn;
+} AddonData;
+
+
+// This function is responsible for converting data coming in from the worker
+// thread to napi_value items that can be passed into JavaScript, and for
+// calling the JavaScript function.
+static void CallJs(napi_env env, napi_value js_cb, void* context, void* data) {
+  // This parameter is not used.
+  (void) context;
+  napi_status status;
+
+  // Retrieve the prime from the item created by the worker thread.
+  int the_prime = *(int*)data;
+
+  // env and js_cb may both be NULL if Node.js is in its cleanup phase, and
+  // items are left over from earlier thread-safe calls from the worker thread.
+  // When env is NULL, we simply skip over the call into Javascript and free the
+  // items.
+  if (env != NULL) {
+    napi_value undefined, js_the_prime;
+
+    // Convert the integer to a napi_value.
+    status = napi_create_int32(env, the_prime, &js_the_prime);
+    assert(status == napi_ok);
+
+    // Retrieve the JavaScript `undefined` value so we can use it as the `this`
+    // value of the JavaScript function call.
+    status = napi_get_undefined(env, &undefined);
+    assert(status == napi_ok);
+
+    // Call the JavaScript function and pass it the prime that the secondary
+    // thread found.
+    status = napi_call_function(env,
+                              undefined,
+                              js_cb,
+                              1,
+                              &js_the_prime,
+                              NULL);
+    assert(status == napi_ok);
+  }
+
+  // Free the item created by the worker thread.
+  free(data);
+}
+
+// This function runs on a worker thread. It has no access to the JavaScript
+// environment except through the thread-safe function.
+static void ExecuteWork(napi_env env, void* data) {
+  AddonData* addon_data = (AddonData*)data;
+  int idx_inner, idx_outer;
+  int prime_count = 0;
+  napi_status status;
+
+  // We bracket the use of the thread-safe function by this thread by a call to
+  // napi_acquire_threadsafe_function() here, and by a call to
+  // napi_release_threadsafe_function() immediately prior to thread exit.
+  status = napi_acquire_threadsafe_function(addon_data->tsfn);
+  assert(status == napi_ok);
+
+  // Find the first 1000 prime numbers using an extremely inefficient algorithm.
+  for (idx_outer = 2; prime_count < PRIME_COUNT; idx_outer++) {
+    for (idx_inner = 2; idx_inner < idx_outer; idx_inner++) {
+      if (idx_outer % idx_inner == 0) {
+        break;
+      }
+    }
+    if (idx_inner < idx_outer) {
+      continue;
+    }
+
+    // We found a prime. If it's the tenth since the last time we sent one to
+    // JavaScript, send it to JavaScript.
+    if (!(++prime_count % REPORT_EVERY)) {
+
+      // Save the prime number to the heap. The JavaScript marshaller (CallJs)
+      // will free this item after having sent it to JavaScript.
+      int* the_prime = malloc(sizeof(*the_prime));
+      *the_prime = idx_outer;
+
+      // Initiate the call into JavaScript. The call into JavaScript will not
+      // have happened when this function returns, but it will be queued.
+      status = napi_call_threadsafe_function(addon_data->tsfn,
+                                           the_prime,
+                                           napi_tsfn_blocking);
+      assert(status == napi_ok);
+    }
+  }
+
+  // Indicate that this thread will make no further use of the thread-safe function.
+  status = napi_release_threadsafe_function(addon_data->tsfn,
+                                          napi_tsfn_release);
+  assert(status == napi_ok);
+}
+
+// This function runs on the main thread after `ExecuteWork` exits.
+static void WorkComplete(napi_env env, napi_status status, void* data) {
+  AddonData* addon_data = (AddonData*)data;
+
+  // Clean up the thread-safe function and the work item associated with this
+  // run.
+  status = napi_release_threadsafe_function(addon_data->tsfn,
+                                            napi_tsfn_release);
+  assert(status == napi_ok);
+  status = napi_delete_async_work(env, addon_data->work);
+  assert(status == napi_ok);
+
+  // Set both values to NULL so JavaScript can order a new run of the thread.
+  addon_data->work = NULL;
+  addon_data->tsfn = NULL;
+}
+
+// Create a thread-safe function and an async queue work item. We pass the
+// thread-safe function to the async queue work item so the latter might have a
+// chance to call into JavaScript from the worker thread on which the
+// ExecuteWork callback runs.
+static napi_value StartThread(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value js_cb, work_name;
+  AddonData* addon_data;
+  napi_status status;
+
+  // Retrieve the JavaScript callback we should call with items generated by the
+  // worker thread, and the per-addon data.
+  status = napi_get_cb_info(env,
+                          info,
+                          &argc,
+                          &js_cb,
+                          NULL,
+                          (void**)(&addon_data));
+  assert(status == napi_ok);
+
+  // Ensure that no work is currently in progress.
+  assert(addon_data->work == NULL && "Only one work item must exist at a time");
+
+  // Create a string to describe this asynchronous operation.
+  status = napi_create_string_utf8(env,
+                                 "N-API Thread-safe Call from Async Work Item",
+                                 NAPI_AUTO_LENGTH,
+                                 &work_name);
+  assert(status == napi_ok);
+
+  // Convert the callback retrieved from JavaScript into a thread-safe function
+  // which we can call from a worker thread.
+  status = napi_create_threadsafe_function(env,
+                                         js_cb,
+                                         NULL,
+                                         work_name,
+                                         0,
+                                         1,
+                                         NULL,
+                                         NULL,
+                                         NULL,
+                                         CallJs,
+                                         &(addon_data->tsfn));
+  assert(status == napi_ok);
+
+  // Create an async work item, passing in the addon data, which will give the
+  // worker thread access to the above-created thread-safe function.
+  status = napi_create_async_work(env,
+                                NULL,
+                                work_name,
+                                ExecuteWork,
+                                WorkComplete,
+                                addon_data,
+                                &(addon_data->work));
+  assert(status == napi_ok);
+
+  // Queue the work item for execution.
+  status = napi_queue_async_work(env, addon_data->work);
+  assert(status == napi_ok);
+
+  // This causes `undefined` to be returned to JavaScript.
+  return NULL;
+}
+
+// Free the per-addon-instance data.
+static void addon_getting_unloaded(napi_env env, void* data, void* hint) {
+  AddonData* addon_data = (AddonData*)data;
+  assert(addon_data->work == NULL &&
+      "No work item in progress at module unload");
+  free(addon_data);
+}
+
+// The commented-out return type and the commented out formal function
+// parameters below help us keep in mind the signature of the addon
+// initialization function. We write the body as though the return value were as
+// commented below and as though there were parameters passed in as commented
+// below.
+/*napi_value*/ NAPI_MODULE_INIT(/*napi_env env, napi_value exports*/) {
+  napi_status status;
+  // Define addon-level data associated with this instance of the addon.
+  AddonData* addon_data = (AddonData*)malloc(sizeof(*addon_data));
+  addon_data->work = NULL;
+
+  // Define the properties that will be set on exports.
+  napi_property_descriptor start_work = {
+    "startThread",
+    NULL,
+    StartThread,
+    NULL,
+    NULL,
+    NULL,
+    napi_default,
+    addon_data
+  };
+
+  // Decorate exports with the above-defined properties.
+  status = napi_define_properties(env, exports, 1, &start_work);
+  assert(status == napi_ok);
+
+  // Associate the addon data with the exports object, to make sure that when
+  // the addon gets unloaded our data gets freed.
+  status = napi_wrap(env,
+                   exports,
+                   addon_data,
+                   addon_getting_unloaded,
+                   NULL,
+                   NULL);
+  assert(status == napi_ok);
+
+  // Return the decorated exports object.
+  return exports;
+}

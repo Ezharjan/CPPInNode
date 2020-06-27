@@ -1,0 +1,15 @@
+{
+  "name": "node-addon-examples",
+  "version": "1.0.0",
+  "description": "Node.js Addon Examples",
+  "main": "test_all.js",
+  "scripts": {
+    "format": "clang-format -i --glob=*/**/*.{h,cpp,cc}",
+    "test": "node test_all.js"
+  },
+  "dependencies": {
+    "chalk": "^3.0.0",
+    "clang-format": "^1.4.0",
+    "semver": "^7.1.3"
+  }
+}
